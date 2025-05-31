@@ -14,14 +14,16 @@ use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\BarangKeluarController;
 use App\Http\Controllers\StokController;
 use App\Http\Controllers\TransaksiController;
+use App\Http\Controllers\ContactController;
 
 // Route for Guest
 Route::get('/', function () { return view('welcome'); })->name('welcome');
 Route::get('/mitra', function () { return view('mitra'); })->name('mitra');
 Route::get('/profil', function () { return view('visi'); })->name('profil');
 Route::get('/produk', [ProductController::class, 'showProducts'])->name('produk');
-// Route::get('/produk', function () { return view('produk'); })->name('produk');
-Route::get('/kontak', function () { return view('kontak'); })->name('kontak');
+Route::get('/kontak', [ContactController::class, 'index'])->name('kontak');
+Route::post('/kontak/store', [ContactController::class, 'store'])->name('kontak.store');
+// Route::get('/kontak', function () { return view('kontak'); })->name('kontak');
 
 // Route login admin
 Route::get('/admin', [AuthController::class, 'showAdminLoginForm'])->name('admin.login');
@@ -29,6 +31,9 @@ Route::post('/admin', [AuthController::class, 'adminLogin'])->name('admin.login.
 
 // Dashboard admin
 Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard')->middleware('auth:admin');
+
+// Lihat Pesan Masuk
+Route::get('/admin/contact', [ContactController::class, 'showMessages'])->name('admin.messages')->middleware('auth:admin');
 
 // Member
 Route::get('/admin/member', [DashboardController::class, 'member'])->name('admin.member')->middleware('auth:admin');

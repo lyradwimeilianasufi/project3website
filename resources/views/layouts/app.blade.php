@@ -39,7 +39,8 @@
 
     @include('sweetalert::alert')
 
-    @yield('script')
+    @yield('scripts')
+
 </body>
 <script>
     function previewImage(event) {

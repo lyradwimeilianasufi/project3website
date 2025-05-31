@@ -128,16 +128,17 @@
 
                     </div>
 
+                    <!-- Form Message -->
                     <div class="col-lg-6 ">
                         <h3 class="text-center" style="color:rgb(66, 11, 249); font-weight: 650">Kritik & Saran</h3>
-                        <form action="tmplt/store" method="post" class="p-3">
-                            <input type="hidden" name="_token" value="XLnv0yfYCpCVA2GWszVTVhovRO21YN4qOtrBUEOz">
+                        <form action="{{ route('kontak.store') }}" method="post" class="p-3">
+                            @csrf
                             <div class="row gy-4">
                                 <div class="col-md-6">
                                     <input type="text" name="name" class="form-control" placeholder="Nama" required>
                                 </div>
 
-                                <div class="col-md-6 ">
+                                <div class="col-md-6">
                                     <input type="email" class="form-control" name="email" placeholder="Email" required>
                                 </div>
                                 <div class="col-md-12">
@@ -147,16 +148,11 @@
                                 <div class="col-md-12 text-center">
                                     <button type="submit" class="btn btn-primary">Send Message</button>
                                 </div>
-
                             </div>
                         </form>
-
                     </div>
-
                 </div>
-
             </div>
-
         </section>
         <!-- End Contact Section -->
 
