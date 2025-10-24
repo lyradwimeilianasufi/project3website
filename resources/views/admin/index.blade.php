@@ -69,7 +69,7 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-gray-500 text-sm">Low Stock Items</h3>
-                            <p class="text-2xl font-semibold">12</p>
+                            <p class="text-2xl font-semibold"><3</p>
                         </div>
                     </div>
                 </div>

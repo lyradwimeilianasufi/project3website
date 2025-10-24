@@ -1,7 +1,7 @@
 <!-- Sidebar -->
 <div id="sidebar" class="bg-blue-800 text-white w-64 py-6 flex flex-col">
     <div class="px-6 mb-8">
-        <h1 class="font-poppins text-xl font-bold">Toko Desi</h1>
+        <h1 class="font-poppins text-xl font-bold">Toko 24</h1>
         <p class="text-blue-200 text-sm">Admin Dashboard</p>
     </div>
 
