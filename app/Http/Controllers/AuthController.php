@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use RealRashid\SweetAlert\Facades\Alert;
+// use app/Http/Controllers/AuthController.php
+
 
 class AuthController extends Controller
 {
@@ -16,36 +18,39 @@ class AuthController extends Controller
 
     // Proses login admin
     public function adminLogin(Request $request)
-    {
-        // Validasi input
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+{
+    // 1️⃣ Validasi input
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
 
-        // Cek kredensial admin dengan guard 'admin'
-        if (Auth::guard('admin')->attempt($request->only('email', 'password'))) {
-            Alert::toast('Selamat datang, Admin!', 'success');
-            return redirect()->intended('/admin/dashboard');
-        }
+    // 2️⃣ Ambil data email dan password dari form
+    $credentials = $request->only('email', 'password');
 
-        Alert::toast('Username atau Password Salah!', 'error');
-        return back();
+    // 3️⃣ Coba login pakai guard 'admin'
+    if (Auth::guard('admin')->attempt($credentials)) {
+        // Regenerasi session biar aman dari session fixation
+        $request->session()->regenerate();
+
+        Alert::toast('Selamat datang, Admin!', 'success');
+
+        // 4️⃣ Redirect ke route dashboard admin
+        return redirect()->intended('/admin/dashboard');
+        // atau kalau kamu punya route name:
+        // return redirect()->intended(route('admin.dashboard'));
     }
 
-    // Logout admin
-    public function adminLogout()
-    {
-        Auth::guard('admin')->logout();
-        Alert::toast('Anda telah berhasil logout.', 'success');
-        return redirect('/admin');
-    }
+    // 5️⃣ Kalau login gagal
+    Alert::toast('Email atau Password salah!', 'error');
+    return back()->withInput();
+}
 
-    // Halaman login user
-    public function showUserLoginForm()
-    {
-        return view('auth.login.user');
-    }
+public function showUserLoginForm()
+{
+    return view('auth.login.user');
+}
+
 
     // Proses login user
     public function userLogin(Request $request)

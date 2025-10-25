@@ -17,9 +17,9 @@ class AdminSeeder extends Seeder
     {
         // Membuat akun admin baru
         Admin::create([
-            'name' => 'Admin',
-            'email' => 'admin@miomidev.com',
-            'password' => Hash::make('developer'), // Password admin
+            'name' => 'admin',
+            'email' => 'admin@gmail.com',
+            'password' => Hash::make('admin'), // Password admin
         ]);
     }
 }
