@@ -4,7 +4,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     <a href="{{ route('user.dashboard') }}" class="flex items-center">
-                        <h1 class="font-poppins font-bold text-2xl text-blue-600">Toko SRC Desi</h1>
+                        <h1 class="font-poppins font-bold text-2xl text-blue-600">Toko24</h1>
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">

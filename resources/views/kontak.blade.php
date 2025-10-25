@@ -17,7 +17,7 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-    <title>Toko SRC Desi</title>
+    <title>Toko24</title>
     <meta content="" name="description">
 
     <meta content="" name="keywords">
@@ -55,7 +55,7 @@
 
             <a href="/" class="logo d-flex align-items-center">
         <img src="tmplt/web/assets/logo/1615924238.png" alt="">
-        <span>Toko SRC Desi</span>
+        <span>Toko24</span>
       </a>
 
             <!-- Navbar -->
@@ -73,7 +73,7 @@
                     <li><a class="nav-link scrollto" href="{{ route('profil') }}">Visi</a></li>
                     <li><a class="nav-link scrollto" href="{{ route('produk') }}">Produk</a></li>
                     <li><a class="nav-link scrollto active" href="{{ route('kontak') }}">Contact</a></li>
-                    <li><a class="nav-link scrollto" href="{{ route('user.login') }}"><i data-feather="shopping-cart"></i></a></li>
+                    <li><a class="nav-link scrollto" href="{{ route('login') }}"><i data-feather="shopping-cart"></i></a></li>
                 </ul>
                 <i class="bi bi-list mobile-nav-toggle"></i>
 
@@ -173,9 +173,9 @@
                     <div class="col-lg-5 col-md-12 footer-info">
                         <a href="tmplt" class="logo d-flex align-items-center">
               <img src="tmplt/web/assets/logo/1615924238.png" alt="">
-              <span>Toko Desi</span>
+              <span>Toko24</span>
             </a>
-                        <p>Belanja Murah dan Hemat Hanya di Toko Desi</p>
+                        <p>Belanja Murah dan Hemat Hanya di Toko24</p>
                         <div class="social-links mt-3">
                             <a href="fb" class="facebok"><i class="bi bi-facebook"></i></a>
                             <a href="lorem ipsum" class="instagram"><i class="bi bi-instagram"></i></a>

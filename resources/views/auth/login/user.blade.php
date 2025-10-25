@@ -40,7 +40,7 @@
                 </p>
             </div>
             
-            <form method="POST" action="{{ route('user.login.submit') }}" class="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-xl">
+            <form method="POST" action="{{ route('login.submit') }}" class="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-xl">
                 @csrf
                 <div class="rounded-md shadow-sm space-y-4">
                     <!-- Email -->

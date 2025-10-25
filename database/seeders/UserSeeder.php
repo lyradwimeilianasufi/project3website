@@ -2,66 +2,67 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class UserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
     public function run()
     {
-        DB::table('users')->insert([
-            [
-                'full_name' => 'Andi Saputra',
-                'email' => 'andi.saputra@gmail.com',
-                'password' => bcrypt('password123'), // Gantilah dengan password dummy yang kamu inginkan
-                'phone_number' => '081234567890',
-                'street_address' => 'Jl. Melati No.7, Gg. Semangka',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40123',
-                'membership_type' => 'regular',
-                'registration_date' => Carbon::now(),
-                'remember_token' => Str::random(10),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-            [
-                'full_name' => 'Budi Kurniawan',
-                'email' => 'budi.kurniawan@example.com',
-                'password' => bcrypt('password123'), 
-                'phone_number' => '082345678901',
-                'street_address' => 'Jl. Pahlawan No.5, Blok D',
-                'city' => 'Yogyakarta',
-                'province' => 'DI Yogyakarta',
-                'postal_code' => '55223',
-                'membership_type' => 'premium',
-                'registration_date' => Carbon::now(),
-                'remember_token' => Str::random(10),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-            [
-                'full_name' => 'Citra Wijaya',
-                'email' => 'citra.wijaya@gmail.com',
-                'password' => bcrypt('password123'),
-                'phone_number' => '089876543210',
-                'street_address' => 'Jl. Raya Cibubur No.10',
-                'city' => 'Bekasi',
-                'province' => 'Jawa Barat',
-                'postal_code' => '17510',
-                'membership_type' => 'regular',
-                'registration_date' => Carbon::now(),
-                'remember_token' => Str::random(10),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-        ]);
+        $users = [];
+        
+        // Field yang wajib ada untuk semua user
+        $baseFields = [
+            'email_verified_at' => Carbon::now(),
+            'remember_token' => Str::random(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        // Admin user
+        $users[] = array_merge([
+            'full_name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'phone_number' => '081234567890',
+            'street_address' => 'Jl. Admin No. 1',
+            'city' => 'Jakarta',
+            'province' => 'DKI Jakarta',
+            'postal_code' => '10110',
+            'membership_type' => 'membership',
+            'registration_date' => Carbon::now(),
+            'is_admin' => true,
+        ], $baseFields);
+
+        // Generate 99 customer users dengan field yang konsisten
+        $cities = ['Jakarta', 'Bandung', 'Surabaya', 'Medan', 'Makassar', 'Semarang', 'Yogyakarta', 'Malang', 'Denpasar', 'Palembang'];
+        $provinces = ['DKI Jakarta', 'Jawa Barat', 'Jawa Timur', 'Sumatera Utara', 'Sulawesi Selatan', 'Jawa Tengah', 'DI Yogyakarta', 'Bali', 'Sumatera Selatan'];
+        $membershipTypes = ['regular', 'membership'];
+        
+        for ($i = 1; $i <= 99; $i++) {
+            $users[] = array_merge([
+                'full_name' => 'Customer ' . $i,
+                'email' => 'customer' . $i . '@example.com',
+                'password' => Hash::make('password'),
+                'phone_number' => '08' . rand(100000000, 999999999),
+                'street_address' => 'Jl. Customer No. ' . $i,
+                'city' => $cities[array_rand($cities)],
+                'province' => $provinces[array_rand($provinces)],
+                'postal_code' => (string) rand(10000, 99999),
+                'membership_type' => $membershipTypes[array_rand($membershipTypes)],
+                'registration_date' => Carbon::now()->subDays(rand(1, 365)),
+                'is_admin' => false,
+            ], $baseFields);
+        }
+
+        // Insert satu per satu untuk menghindari error bulk insert
+        foreach ($users as $user) {
+            User::create($user);
+        }
+        
+        $this->command->info('100 users seeded successfully!');
     }
 }

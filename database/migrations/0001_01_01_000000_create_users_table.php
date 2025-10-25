@@ -20,9 +20,11 @@ return new class extends Migration
             $table->string('street_address');
             $table->string('city');
             $table->string('province');
+            $table->boolean('is_admin')->default(false);
             $table->string('postal_code');
             $table->string('membership_type');
             $table->date('registration_date');
+                        $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

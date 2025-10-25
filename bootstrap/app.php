@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'https://424a-103-184-122-43.ngrok-free.app/checkout/callback',
             'checkout/callback',
         ]);
+        $middleware->alias([
+        'auth.admin' => \App\Http\Middleware\AdminMiddleware::class,
+    ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

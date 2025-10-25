@@ -2,32 +2,33 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Kolom yang boleh diisi secara mass-assignment.
      */
     protected $fillable = [
-        'name',
+        'full_name',        // <- sesuai nama kolom di migration kamu
         'email',
         'password',
-        'role',
+        'phone_number',
+        'street_address',
+        'city',
+        'province',
+        'postal_code',
+        'membership_type',
+        'registration_date',
+        'is_admin',         // kolom tambahan yang kamu tambahkan
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Kolom yang disembunyikan saat serialisasi (misal ke JSON).
      */
     protected $hidden = [
         'password',
@@ -35,15 +36,19 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Konversi otomatis tipe data kolom tertentu.
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_admin' => 'boolean',
+    ];
+
+    /**
+     * Helper: Cek apakah user adalah admin.
+     */
+    public function isAdmin(): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return (bool) $this->is_admin;
     }
 }
