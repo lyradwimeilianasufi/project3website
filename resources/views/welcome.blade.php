@@ -54,7 +54,7 @@
         <div class="container-fluid container-xl d-flex align-items-center justify-content-between">
 
             <a href="/" class="logo d-flex align-items-center">
-        <img src="tmplt/web/assets/logo/1615924238.png" alt="">
+        {{-- <img src="tmplt/web/assets/logo/1615924238.png" alt=""> --}}
         <span>Toko24</span>
       </a>
 
