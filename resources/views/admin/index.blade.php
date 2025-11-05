@@ -17,8 +17,8 @@
             </button>
             <h2 class="font-poppins text-xl font-semibold">Dashboard Overview</h2>
             <div class="flex items-center">
-                <span class="text-gray-600 mr-4">{{ Auth::user()->full_name }}</span>
-                <img src="https://ui-avatars.com/api/?name={{ Auth::user()->full_name }}&background=0D47A1&color=fff" 
+                {{-- <span class="text-gray-600 mr-4">{{ Auth::user()->full_name }}</span> --}}
+                <img src="https://ui-avatars.com/api/?name=&background=0D47A1&color=fff" 
                     alt="Admin" class="w-8 h-8 rounded-full">
             </div>
         </div>

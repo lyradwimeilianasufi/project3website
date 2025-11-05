@@ -37,9 +37,9 @@ class AuthController extends Controller
         Alert::toast('Selamat datang, Admin!', 'success');
 
         // 4️⃣ Redirect ke route dashboard admin
-        return redirect()->intended('/admin/index');
+        // return redirect()->intended('/admin/inde');
         // atau kalau kamu punya route name:
-        // return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(route('admin.dashboard'));
     }
 
     // 5️⃣ Kalau login gagal

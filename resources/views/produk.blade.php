@@ -181,7 +181,7 @@
 
         <div class="container">
             <div class="copyright">
-                2025 Copyrights reserved by <strong><span>Toko SCR Desi</span></strong>.
+                2025 Copyrights reserved by <strong><span>Toko 24</span></strong>.
             </div>
         </div>
     </footer>
