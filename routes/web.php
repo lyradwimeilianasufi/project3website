@@ -32,7 +32,7 @@ Route::get('/admin', [AuthController::class, 'showAdminLoginForm'])->name('admin
 Route::post('/admin', [AuthController::class, 'adminLogin'])->name('admin.login.submit');
 
 // Dashboard admin
-Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+Route::get('/admin/index', [AdminController::class, 'Dashboard'])->name('admin.dashboard');
 
 // Lihat Pesan Masuk
 Route::get('/admin/contact', [ContactController::class, 'showMessages'])->name('admin.messages')->middleware('auth.admin');

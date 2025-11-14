@@ -54,7 +54,7 @@
     </nav>
 
     <div class="px-6 py-4 border-t border-blue-700">
-        <form action="{{ route('admin.logout') }}" method="POST">
+        <form action="{{ route('user.logout') }}" method="POST">
             @csrf
             <button type="submit" class="flex items-center text-blue-100 hover:text-white">
                 <i class="fas fa-sign-out-alt mr-3"></i>

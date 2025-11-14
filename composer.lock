@@ -3200,13 +3200,17 @@
         {
             "name": "psy/psysh",
             "version": "v0.12.14",
+            "version": "v0.12.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/bobthecow/psysh.git",
                 "reference": "95c29b3756a23855a30566b745d218bee690bef2"
+                "reference": "95c29b3756a23855a30566b745d218bee690bef2"
             },
             "dist": {
                 "type": "zip",
+                "url": "https://api.github.com/repos/bobthecow/psysh/zipball/95c29b3756a23855a30566b745d218bee690bef2",
+                "reference": "95c29b3756a23855a30566b745d218bee690bef2",
                 "url": "https://api.github.com/repos/bobthecow/psysh/zipball/95c29b3756a23855a30566b745d218bee690bef2",
                 "reference": "95c29b3756a23855a30566b745d218bee690bef2",
                 "shasum": ""
@@ -3273,7 +3277,9 @@
             "support": {
                 "issues": "https://github.com/bobthecow/psysh/issues",
                 "source": "https://github.com/bobthecow/psysh/tree/v0.12.14"
+                "source": "https://github.com/bobthecow/psysh/tree/v0.12.14"
             },
+            "time": "2025-10-27T17:15:31+00:00"
             "time": "2025-10-27T17:15:31+00:00"
         },
         {
@@ -4116,13 +4122,17 @@
         {
             "name": "symfony/finder",
             "version": "v7.3.5",
+            "version": "v7.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/finder.git",
                 "reference": "9f696d2f1e340484b4683f7853b273abff94421f"
+                "reference": "9f696d2f1e340484b4683f7853b273abff94421f"
             },
             "dist": {
                 "type": "zip",
+                "url": "https://api.github.com/repos/symfony/finder/zipball/9f696d2f1e340484b4683f7853b273abff94421f",
+                "reference": "9f696d2f1e340484b4683f7853b273abff94421f",
                 "url": "https://api.github.com/repos/symfony/finder/zipball/9f696d2f1e340484b4683f7853b273abff94421f",
                 "reference": "9f696d2f1e340484b4683f7853b273abff94421f",
                 "shasum": ""
@@ -4160,6 +4170,7 @@
             "homepage": "https://symfony.com",
             "support": {
                 "source": "https://github.com/symfony/finder/tree/v7.3.5"
+                "source": "https://github.com/symfony/finder/tree/v7.3.5"
             },
             "funding": [
                 {
@@ -4179,6 +4190,7 @@
                     "type": "tidelift"
                 }
             ],
+            "time": "2025-10-15T18:45:57+00:00"
             "time": "2025-10-15T18:45:57+00:00"
         },
         {
@@ -4385,13 +4397,17 @@
         {
             "name": "symfony/mailer",
             "version": "v7.3.5",
+            "version": "v7.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/mailer.git",
                 "reference": "fd497c45ba9c10c37864e19466b090dcb60a50ba"
+                "reference": "fd497c45ba9c10c37864e19466b090dcb60a50ba"
             },
             "dist": {
                 "type": "zip",
+                "url": "https://api.github.com/repos/symfony/mailer/zipball/fd497c45ba9c10c37864e19466b090dcb60a50ba",
+                "reference": "fd497c45ba9c10c37864e19466b090dcb60a50ba",
                 "url": "https://api.github.com/repos/symfony/mailer/zipball/fd497c45ba9c10c37864e19466b090dcb60a50ba",
                 "reference": "fd497c45ba9c10c37864e19466b090dcb60a50ba",
                 "shasum": ""
@@ -4445,6 +4461,7 @@
             "homepage": "https://symfony.com",
             "support": {
                 "source": "https://github.com/symfony/mailer/tree/v7.3.5"
+                "source": "https://github.com/symfony/mailer/tree/v7.3.5"
             },
             "funding": [
                 {
@@ -4464,6 +4481,7 @@
                     "type": "tidelift"
                 }
             ],
+            "time": "2025-10-24T14:27:20+00:00"
             "time": "2025-10-24T14:27:20+00:00"
         },
         {
@@ -5969,13 +5987,17 @@
         {
             "name": "symfony/var-dumper",
             "version": "v7.3.5",
+            "version": "v7.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/var-dumper.git",
                 "reference": "476c4ae17f43a9a36650c69879dcf5b1e6ae724d"
+                "reference": "476c4ae17f43a9a36650c69879dcf5b1e6ae724d"
             },
             "dist": {
                 "type": "zip",
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/476c4ae17f43a9a36650c69879dcf5b1e6ae724d",
+                "reference": "476c4ae17f43a9a36650c69879dcf5b1e6ae724d",
                 "url": "https://api.github.com/repos/symfony/var-dumper/zipball/476c4ae17f43a9a36650c69879dcf5b1e6ae724d",
                 "reference": "476c4ae17f43a9a36650c69879dcf5b1e6ae724d",
                 "shasum": ""
@@ -6032,6 +6054,7 @@
             ],
             "support": {
                 "source": "https://github.com/symfony/var-dumper/tree/v7.3.5"
+                "source": "https://github.com/symfony/var-dumper/tree/v7.3.5"
             },
             "funding": [
                 {
@@ -6051,6 +6074,7 @@
                     "type": "tidelift"
                 }
             ],
+            "time": "2025-09-27T09:00:46+00:00"
             "time": "2025-09-27T09:00:46+00:00"
         },
         {
@@ -6622,6 +6646,7 @@
             },
             "require-dev": {
                 "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0",
+                "phpstan/phpstan": "^2.0"
                 "phpstan/phpstan": "^2.0"
             },
             "bin": [
@@ -8506,13 +8531,17 @@
         {
             "name": "symfony/yaml",
             "version": "v7.3.5",
+            "version": "v7.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/yaml.git",
                 "reference": "90208e2fc6f68f613eae7ca25a2458a931b1bacc"
+                "reference": "90208e2fc6f68f613eae7ca25a2458a931b1bacc"
             },
             "dist": {
                 "type": "zip",
+                "url": "https://api.github.com/repos/symfony/yaml/zipball/90208e2fc6f68f613eae7ca25a2458a931b1bacc",
+                "reference": "90208e2fc6f68f613eae7ca25a2458a931b1bacc",
                 "url": "https://api.github.com/repos/symfony/yaml/zipball/90208e2fc6f68f613eae7ca25a2458a931b1bacc",
                 "reference": "90208e2fc6f68f613eae7ca25a2458a931b1bacc",
                 "shasum": ""
@@ -8558,6 +8587,7 @@
             "homepage": "https://symfony.com",
             "support": {
                 "source": "https://github.com/symfony/yaml/tree/v7.3.5"
+                "source": "https://github.com/symfony/yaml/tree/v7.3.5"
             },
             "funding": [
                 {
@@ -8577,6 +8607,7 @@
                     "type": "tidelift"
                 }
             ],
+            "time": "2025-09-27T09:00:46+00:00"
             "time": "2025-09-27T09:00:46+00:00"
         },
         {
@@ -8632,12 +8663,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
