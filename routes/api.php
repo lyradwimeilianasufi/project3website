@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\StokController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TransaksiController;
@@ -103,11 +104,23 @@ Route::prefix('members')->middleware('auth:sanctum')->group(function () {
 // Payment routes
 Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
     Route::get('/checkout', [PaymentController::class, 'checkout']);
-    Route::post('/process', [PaymentController::class, 'processPayment']);
+    Route::post('/process', [PaymentController::class, 'processPaymentMobile']);
     Route::post('/{transactionId}/confirm', [PaymentController::class, 'confirmPayment']);
     Route::get('/{transactionId}/status', [PaymentController::class, 'getPaymentStatus']);
+    
+    Route::get('/transactions', [PaymentController::class, 'getUserTransactions']);
+    Route::get('/snap-token/{snapToken}', [PaymentController::class, 'getTransactionBySnapToken']);
+    Route::post('/{transactionId}/regenerate-snap-token', [PaymentController::class, 'regenerateSnapToken']);
 });
 
+Route::prefix('payments')->group(function () {
+    Route::get('/{transactionId}/check-status', [PaymentController::class, 'checkTransactionStatus']);
+    Route::post('/payments/test-callback', [PaymentController::class, 'testCallback']);
+    Route::post('/callback/mobile', [PaymentController::class, 'mobileCallback']);
+    Route::post('/callback/finish', [PaymentController::class, 'mobileCallback']);
+    Route::post('/callback/error', [PaymentController::class, 'mobileCallback']);
+    Route::post('/callback/pending', [PaymentController::class, 'mobileCallback']);
+});
 // Product routes
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/categories', [ProductController::class, 'categories']);

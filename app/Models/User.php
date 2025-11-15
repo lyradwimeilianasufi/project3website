@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use Laravel\Sanctum\HasApiTokens;   // ← WAJIB
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,6 +13,8 @@ class User extends Authenticatable
     /**
      * Kolom yang boleh diisi secara mass-assignment.
      */
+        use HasApiTokens, Notifiable;    // ← WAJIB
+
     protected $fillable = [
         'full_name',        // <- sesuai nama kolom di migration kamu
         'email',
