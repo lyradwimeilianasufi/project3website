@@ -104,28 +104,21 @@ class PaymentController extends Controller
             ];
 
             // Parameter untuk Midtrans
-            $params = [
-                'transaction_details' => [
-                    'order_id' => $orderId,
-                    'gross_amount' => (int) $finalTotal,
-                ],
-                'item_details' => $items,
-                'customer_details' => [
-                    'first_name' => auth()->user()->full_name ?? 'Customer',
-                    'email' => auth()->user()->email ?? 'customer@example.com',
-                    'phone' => auth()->user()->phone_number ?? '08123456789',
-                ],
-                'callbacks' => [
-                    'finish' => env('APP_URL') . '/api/payments/callback/finish',
-                    'error' => env('APP_URL') . '/api/payments/callback/error',
-                    'pending' => env('APP_URL') . '/api/payments/callback/pending',
-                ],
-                'expiry' => [
-                    'start_time' => now()->format('Y-m-d H:i:s O'),
-                    'duration' => 15, // 15 menit
-                    'unit' => 'minute'
-                ]
-            ];
+             $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $finalTotal,
+            ],
+            'item_details' => $items,
+            'customer_details' => [
+                'first_name' => auth()->user()->full_name,
+                'email' => auth()->user()->email,
+                'phone' => auth()->user()->phone_number,
+            ],
+            'callbacks' => [
+                'finish' => url('/api/midtrans/redirect'),
+            ]
+        ];
 
             Log::info('Midtrans params prepared', $params);
 

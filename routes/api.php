@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\MidtransController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\TransaksiController;
 use App\Http\Controllers\Api\BarangMasukController;
@@ -112,7 +113,16 @@ Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
     Route::get('/snap-token/{snapToken}', [PaymentController::class, 'getTransactionBySnapToken']);
     Route::post('/{transactionId}/regenerate-snap-token', [PaymentController::class, 'regenerateSnapToken']);
 });
-
+// MIDTRANS ROUTES
+Route::prefix('midtrans')->group(function () {
+    Route::post('/callback', [MidtransController::class, 'handleNotification']);
+        Route::get('/redirect', [MidtransController::class, 'handleRedirect']);
+    
+    Route::get('/status/{orderId}', [MidtransController::class, 'checkStatus']);
+    
+    Route::get('/test', [MidtransController::class, 'test']);
+    Route::post('/simulate-callback', [MidtransController::class, 'simulateCallback']);
+});
 Route::prefix('payments')->group(function () {
     Route::get('/{transactionId}/check-status', [PaymentController::class, 'checkTransactionStatus']);
     Route::post('/payments/test-callback', [PaymentController::class, 'testCallback']);
