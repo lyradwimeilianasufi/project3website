@@ -15,13 +15,15 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-    // Proses Pembayaran untuk Mobile
+    /**
+     * Proses Pembayaran untuk Mobile dengan Midtrans
+     */
     public function processPaymentMobile(Request $request)
     {
         DB::beginTransaction();
         
         try {
-            Log::info('Starting payment process for user: ' . auth()->id());
+            Log::info('💰 Starting payment process for user: ' . auth()->id());
 
             // Ambil keranjang dan total
             $cart = Cart::with('product')->where('user_id', auth()->id())->get();
@@ -50,61 +52,129 @@ class PaymentController extends Controller
             $finalTotal = $total + $fee;
 
             // Konfigurasi Midtrans
-            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-            Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
-            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-            Config::$isSanitized = true;
-            Config::$is3ds = true;
+            $this->setupMidtransConfig();
 
             // Generate unique order ID
             $orderId = 'ORDER-' . time() . '-' . auth()->id();
 
-            // Membuat transaksi di database TANPA SNAP TOKEN DULU
+            // Membuat transaksi di database
             $transaction = UserTransaction::create([
                 'user_id' => auth()->id(),
                 'transaction_id' => $orderId,
                 'total' => $finalTotal,
                 'status' => 'pending',
-                'payment_method' => 'midtrans', // Default method
+                'payment_method' => 'midtrans',
                 'expiry_time' => now()->addMinutes(15),
             ]);
 
-            Log::info('Transaction created: ' . $transaction->id);
+            Log::info('📦 Transaction created: ' . $transaction->id);
 
             // Pindahkan data produk dari keranjang ke transaction_items
-            foreach ($cart as $item) {
-                TransactionItem::create([
-                    'transaction_id' => $transaction->id,
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'subtotal' => $item->subtotal,
-                ]);
-                
-                Log::info('Transaction item created for product: ' . $item->product_id);
-            }
+            $this->createTransactionItems($transaction, $cart);
 
-            // Detail items untuk Midtrans
-            $items = [];
-            foreach ($cart as $item) {
-                $items[] = [
-                    'id' => $item->product_id,
-                    'price' => (int) $item->price,
-                    'quantity' => (int) $item->quantity,
-                    'name' => $item->product->name,
-                ];
-            }
+            // Siapkan parameter untuk Midtrans
+            $params = $this->prepareMidtransParams($orderId, $finalTotal, $cart, $fee);
 
-            // Tambah admin fee
+            Log::info('🎯 Midtrans params prepared', $params);
+
+            // Generate Snap Token
+            $snapToken = Snap::getSnapToken($params);
+            
+            Log::info('🔑 Snap token generated: ' . substr($snapToken, 0, 20) . '...');
+
+            // Update transaction dengan snap token
+            $transaction->update([
+                'snap_token' => $snapToken,
+                'payment_url' => 'https://app.sandbox.midtrans.com/snap/v3/redirection/' . $snapToken,
+            ]);
+
+            Log::info('💾 Snap token saved to transaction: ' . $transaction->id);
+
+            // Hapus keranjang setelah transaksi dibuat
+            Cart::where('user_id', auth()->id())->delete();
+            
+            Log::info('🛒 Cart cleared for user: ' . auth()->id());
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment processed successfully',
+                'data' => [
+                    'snap_token' => $snapToken,
+                    'transaction' => $this->formatTransactionResponse($transaction)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('💥 Payment Error: ' . $e->getMessage());
+            Log::error('💥 Payment Error Trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment processing failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Setup Midtrans configuration
+     */
+    private function setupMidtransConfig()
+    {
+        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+        Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
+        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+    }
+
+    /**
+     * Create transaction items from cart
+     */
+    private function createTransactionItems($transaction, $cart)
+    {
+        foreach ($cart as $item) {
+            TransactionItem::create([
+                'transaction_id' => $transaction->id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'subtotal' => $item->subtotal,
+            ]);
+            
+            Log::info('📝 Transaction item created for product: ' . $item->product_id);
+        }
+    }
+
+    /**
+     * Prepare Midtrans parameters
+     */
+    private function prepareMidtransParams($orderId, $finalTotal, $cart, $fee)
+    {
+        $items = [];
+        
+        // Add product items
+        foreach ($cart as $item) {
             $items[] = [
-                'id' => 'admin-fee',
-                'name' => 'Biaya Admin',
-                'price' => (int) $fee,
-                'quantity' => 1,
+                'id' => $item->product_id,
+                'price' => (int) $item->price,
+                'quantity' => (int) $item->quantity,
+                'name' => $item->product->name,
             ];
+        }
 
-            // Parameter untuk Midtrans
-             $params = [
+        // Add admin fee
+        $items[] = [
+            'id' => 'admin-fee',
+            'name' => 'Biaya Admin',
+            'price' => (int) $fee,
+            'quantity' => 1,
+        ];
+
+        return [
             'transaction_details' => [
                 'order_id' => $orderId,
                 'gross_amount' => $finalTotal,
@@ -117,73 +187,45 @@ class PaymentController extends Controller
             ],
             'callbacks' => [
                 'finish' => url('/api/midtrans/redirect'),
+            ],
+            'expiry' => [
+                'start_time' => now()->format('Y-m-d H:i:s O'),
+                'duration' => 15,
+                'unit' => 'minute'
             ]
         ];
-
-            Log::info('Midtrans params prepared', $params);
-
-            // ✅ GENERATE SNAP TOKEN
-            $snapToken = Snap::getSnapToken($params);
-            
-            Log::info('Snap token generated: ' . substr($snapToken, 0, 20) . '...');
-
-            // ✅ UPDATE TRANSACTION DENGAN SNAP TOKEN
-            $transaction->update([
-                'snap_token' => $snapToken,
-                'payment_url' => 'https://app.sandbox.midtrans.com/snap/v3/redirection/' . $snapToken, // Optional
-            ]);
-
-            Log::info('Snap token saved to transaction: ' . $transaction->id);
-
-            // Hapus keranjang setelah transaksi dibuat
-            Cart::where('user_id', auth()->id())->delete();
-            
-            Log::info('Cart cleared for user: ' . auth()->id());
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment processed successfully',
-                'data' => [
-                    'snap_token' => $snapToken,
-                    'transaction' => [
-                        'id' => $transaction->id,
-                        'transaction_id' => $transaction->transaction_id,
-                        'total' => $transaction->total,
-                        'status' => $transaction->status,
-                        'payment_method' => $transaction->payment_method,
-                        'snap_token' => $transaction->snap_token, // ✅ KIRIM SNAP_TOKEN
-                        'expiry_time' => $transaction->expiry_time->toISOString(),
-                        'created_at' => $transaction->created_at->toISOString(),
-                        'items' => $transaction->items->map(function($item) {
-                            return [
-                                'id' => $item->id,
-                                'product_id' => $item->product_id,
-                                'product_name' => $item->product->name,
-                                'quantity' => $item->quantity,
-                                'price' => $item->price,
-                                'subtotal' => $item->subtotal,
-                            ];
-                        })
-                    ]
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            Log::error('Payment Error: ' . $e->getMessage());
-            Log::error('Payment Error Trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment processing failed: ' . $e->getMessage()
-            ], 500);
-        }
     }
 
-    // Get Transaction Status dengan snap_token
+    /**
+     * Format transaction response
+     */
+    private function formatTransactionResponse($transaction)
+    {
+        return [
+            'id' => $transaction->id,
+            'transaction_id' => $transaction->transaction_id,
+            'total' => $transaction->total,
+            'status' => $transaction->status,
+            'payment_method' => $transaction->payment_method,
+            'snap_token' => $transaction->snap_token,
+            'expiry_time' => $transaction->expiry_time->toISOString(),
+            'created_at' => $transaction->created_at->toISOString(),
+            'items' => $transaction->items->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->name,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'subtotal' => $item->subtotal,
+                ];
+            })
+        ];
+    }
+
+    /**
+     * Get Transaction Status dengan snap_token
+     */
     public function getPaymentStatus($transactionId)
     {
         try {
@@ -200,7 +242,7 @@ class PaymentController extends Controller
                         'status' => $transaction->status,
                         'total' => $transaction->total,
                         'payment_method' => $transaction->payment_method,
-                        'snap_token' => $transaction->snap_token, // ✅ SERTAKAN SNAP_TOKEN
+                        'snap_token' => $transaction->snap_token,
                         'expiry_time' => $transaction->expiry_time?->toISOString(),
                         'created_at' => $transaction->created_at->toISOString(),
                         'items' => $transaction->items->map(function ($item) {
@@ -222,7 +264,9 @@ class PaymentController extends Controller
         }
     }
 
-    // Get Transaction by Snap Token
+    /**
+     * Get Transaction by Snap Token
+     */
     public function getTransactionBySnapToken($snapToken)
     {
         try {
@@ -245,7 +289,9 @@ class PaymentController extends Controller
         }
     }
 
-    // Regenerate Snap Token (jika token expired)
+    /**
+     * Regenerate Snap Token (jika token expired)
+     */
     public function regenerateSnapToken($transactionId)
     {
         DB::beginTransaction();
@@ -258,8 +304,7 @@ class PaymentController extends Controller
                 ->firstOrFail();
 
             // Konfigurasi Midtrans
-            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+            $this->setupMidtransConfig();
 
             // Detail items untuk Midtrans
             $items = [];
@@ -313,7 +358,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            Log::error('Regenerate Snap Token Error: ' . $e->getMessage());
+            Log::error('🔄 Regenerate Snap Token Error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -322,7 +367,9 @@ class PaymentController extends Controller
         }
     }
 
-    // Confirm Payment (untuk simulasi/testing)
+    /**
+     * Confirm Payment (untuk simulasi/testing)
+     */
     public function confirmPayment(Request $request, $transactionId)
     {
         try {
@@ -361,170 +408,165 @@ class PaymentController extends Controller
         }
     }
 
-    // Callback handler untuk mobile
-// Di PaymentController - PERBAIKI method mobileCallback
-public function mobileCallback(Request $request)
-{
-    Log::info('🎯 Midtrans CALLBACK RECEIVED', $request->all());
-    
-    try {
-        $serverKey = env('MIDTRANS_SERVER_KEY');
+    /**
+     * Callback handler untuk mobile
+     */
+    public function mobileCallback(Request $request)
+    {
+        Log::info('🎯 [MOBILE] Midtrans CALLBACK RECEIVED', $request->all());
         
-        // ✅ VERIFIKASI SIGNATURE - Penting untuk security
-        $signatureKey = hash('sha512', 
-            $request->order_id . 
-            $request->status_code . 
-            $request->gross_amount . 
-            $serverKey
-        );
-
-        Log::info('🔐 Signature Verification:', [
-            'received' => $request->signature_key,
-            'calculated' => $signatureKey
-        ]);
-
-        if ($signatureKey !== $request->signature_key) {
-            Log::error('❌ INVALID SIGNATURE for order: ' . $request->order_id);
-            return response()->json(['success' => false, 'message' => 'Invalid signature'], 400);
-        }
-
-        $transaction = UserTransaction::where('transaction_id', $request->order_id)->first();
-
-        if (!$transaction) {
-            Log::error('❌ TRANSACTION NOT FOUND: ' . $request->order_id);
-            return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
-        }
-
-        Log::info('📦 Transaction Found:', [
-            'id' => $transaction->id,
-            'current_status' => $transaction->status,
-            'new_status' => $request->transaction_status
-        ]);
-
-        // ✅ UPDATE PAYMENT METHOD jika ada
-        if ($request->payment_type) {
-            $transaction->payment_method = $request->payment_type;
-        }
-
-        // ✅ UPDATE STATUS TRANSAKSI
-        $status = $request->transaction_status;
-        $newStatus = $transaction->status; // default tetap status lama
-        
-        if ($status == 'capture') {
-            if ($request->fraud_status == 'accept') {
-                $newStatus = 'success';
-                Log::info('💰 Payment CAPTURED and ACCEPTED: ' . $request->order_id);
-            } else {
-                $newStatus = 'failed';
-                Log::warning('🚫 Payment CAPTURED but FRAUD: ' . $request->order_id);
-            }
-        } elseif ($status == 'settlement') {
-            $newStatus = 'success';
-            Log::info('✅ Payment SETTLED: ' . $request->order_id);
-        } elseif ($status == 'pending') {
-            $newStatus = 'pending';
-            Log::info('⏳ Payment PENDING: ' . $request->order_id);
-        } elseif ($status == 'deny' || $status == 'cancel') {
-            $newStatus = 'failed';
-            Log::info('❌ Payment DENIED/CANCELLED: ' . $request->order_id);
-        } elseif ($status == 'expire') {
-            $newStatus = 'expired';
-            Log::info('⌛ Payment EXPIRED: ' . $request->order_id);
-        } else {
-            Log::warning('🤔 Unknown transaction status: ' . $status);
-        }
-
-        // ✅ UPDATE DATABASE JIKA STATUS BERUBAH
-        if ($transaction->status !== $newStatus) {
-            $transaction->status = $newStatus;
-            $transaction->save();
+        try {
+            $serverKey = env('MIDTRANS_SERVER_KEY');
             
-            Log::info('📝 Status Updated:', [
-                'from' => $transaction->getOriginal('status'),
-                'to' => $newStatus
+            // ✅ VERIFIKASI SIGNATURE - Penting untuk security
+            $signatureKey = hash('sha512', 
+                $request->order_id . 
+                $request->status_code . 
+                $request->gross_amount . 
+                $serverKey
+            );
+
+            Log::info('🔐 Signature Verification:', [
+                'received' => $request->signature_key,
+                'calculated' => $signatureKey
             ]);
 
-            // ✅ KURANGI STOK JIKA SUCCESS
-            if ($newStatus === 'success') {
-                $this->updateProductStock($transaction);
-                Log::info('📦 Stock updated for successful transaction: ' . $request->order_id);
+            if ($signatureKey !== $request->signature_key) {
+                Log::error('❌ INVALID SIGNATURE for order: ' . $request->order_id);
+                return response()->json(['success' => false, 'message' => 'Invalid signature'], 400);
             }
-        } else {
-            Log::info('ℹ️ Status unchanged: ' . $newStatus);
-        }
 
-        Log::info('🎉 Callback processed successfully for: ' . $request->order_id);
-        return response()->json(['success' => true, 'message' => 'Callback processed']);
+            $transaction = UserTransaction::where('transaction_id', $request->order_id)->first();
 
-    } catch (\Exception $e) {
-        Log::error('💥 CALLBACK ERROR: ' . $e->getMessage());
-        Log::error('💥 Stack trace: ' . $e->getTraceAsString());
-        return response()->json(['success' => false, 'message' => 'Server error'], 500);
-    }
-}
-// Tambahkan method ini di PaymentController
-public function checkTransactionStatus($transactionId)
-{
-    try {
-        $transaction = UserTransaction::where('transaction_id', $transactionId)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
-
-        // ✅ CHECK STATUS DI MIDTRANS LANGSUNG
-        $serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$serverKey = $serverKey;
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
-
-        $midtransStatus = \Midtrans\Transaction::status($transactionId);
-        
-        Log::info('🔍 Manual Status Check:', [
-            'transaction_id' => $transactionId,
-            'local_status' => $transaction->status,
-            'midtrans_status' => $midtransStatus->transaction_status
-        ]);
-
-        // ✅ UPDATE STATUS JIKA BERBEDA
-        $midtransStatus = $midtransStatus->transaction_status;
-        if ($transaction->status !== $midtransStatus) {
-            $transaction->status = $midtransStatus;
-            $transaction->save();
-            
-            if ($midtransStatus === 'settlement') {
-                $this->updateProductStock($transaction);
+            if (!$transaction) {
+                Log::error('❌ TRANSACTION NOT FOUND: ' . $request->order_id);
+                return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
             }
+
+            Log::info('📦 Transaction Found:', [
+                'id' => $transaction->id,
+                'current_status' => $transaction->status,
+                'new_status' => $request->transaction_status
+            ]);
+
+            // ✅ UPDATE PAYMENT METHOD jika ada
+            if ($request->payment_type) {
+                $transaction->payment_method = $request->payment_type;
+            }
+
+            // ✅ UPDATE STATUS TRANSAKSI
+            $status = $request->transaction_status;
+            $newStatus = $transaction->status;
             
-            Log::info('🔄 Status updated from Midtrans: ' . $midtransStatus);
+            if ($status == 'capture') {
+                if ($request->fraud_status == 'accept') {
+                    $newStatus = 'success';
+                    Log::info('💰 Payment CAPTURED and ACCEPTED: ' . $request->order_id);
+                } else {
+                    $newStatus = 'failed';
+                    Log::warning('🚫 Payment CAPTURED but FRAUD: ' . $request->order_id);
+                }
+            } elseif ($status == 'settlement') {
+                $newStatus = 'success';
+                Log::info('✅ Payment SETTLED: ' . $request->order_id);
+            } elseif ($status == 'pending') {
+                $newStatus = 'pending';
+                Log::info('⏳ Payment PENDING: ' . $request->order_id);
+            } elseif ($status == 'deny' || $status == 'cancel') {
+                $newStatus = 'failed';
+                Log::info('❌ Payment DENIED/CANCELLED: ' . $request->order_id);
+            } elseif ($status == 'expire') {
+                $newStatus = 'expired';
+                Log::info('⌛ Payment EXPIRED: ' . $request->order_id);
+            } else {
+                Log::warning('🤔 Unknown transaction status: ' . $status);
+            }
+
+            // ✅ UPDATE DATABASE JIKA STATUS BERUBAH
+            if ($transaction->status !== $newStatus) {
+                $transaction->status = $newStatus;
+                $transaction->save();
+                
+                Log::info('📝 Status Updated:', [
+                    'from' => $transaction->getOriginal('status'),
+                    'to' => $newStatus
+                ]);
+
+                // ✅ KURANGI STOK JIKA SUCCESS
+                if ($newStatus === 'success') {
+                    $this->updateProductStock($transaction);
+                    Log::info('📦 Stock updated for successful transaction: ' . $request->order_id);
+                }
+            } else {
+                Log::info('ℹ️ Status unchanged: ' . $newStatus);
+            }
+
+            Log::info('🎉 Callback processed successfully for: ' . $request->order_id);
+            return response()->json(['success' => true, 'message' => 'Callback processed']);
+
+        } catch (\Exception $e) {
+            Log::error('💥 CALLBACK ERROR: ' . $e->getMessage());
+            Log::error('💥 Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'transaction' => $transaction->load('items.product'),
-                'midtrans_status' => $midtransStatus
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Manual status check failed: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to check status'
-        ], 500);
     }
-}
-// Di PaymentController - tambahkan method test
-public function testCallback(Request $request)
-{
-    Log::info('🧪 TEST CALLBACK RECEIVED', $request->all());
-    
-    return response()->json([
-        'success' => true,
-        'message' => 'Callback URL is working!',
-        'data' => $request->all(),
-        'timestamp' => now()->toISOString()
-    ]);
-}
-    // Get User Transactions dengan snap_token
+
+    /**
+     * Manual status check dari Midtrans
+     */
+    public function checkTransactionStatus($transactionId)
+    {
+        try {
+            $transaction = UserTransaction::where('transaction_id', $transactionId)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
+            // ✅ CHECK STATUS DI MIDTRANS LANGSUNG
+            $serverKey = env('MIDTRANS_SERVER_KEY');
+            Config::$serverKey = $serverKey;
+            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+
+            $midtransStatus = \Midtrans\Transaction::status($transactionId);
+            
+            Log::info('🔍 Manual Status Check:', [
+                'transaction_id' => $transactionId,
+                'local_status' => $transaction->status,
+                'midtrans_status' => $midtransStatus->transaction_status
+            ]);
+
+            // ✅ UPDATE STATUS JIKA BERBEDA
+            $midtransStatus = $midtransStatus->transaction_status;
+            if ($transaction->status !== $midtransStatus) {
+                $transaction->status = $midtransStatus;
+                $transaction->save();
+                
+                if ($midtransStatus === 'settlement') {
+                    $this->updateProductStock($transaction);
+                }
+                
+                Log::info('🔄 Status updated from Midtrans: ' . $midtransStatus);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'transaction' => $transaction->load('items.product'),
+                    'midtrans_status' => $midtransStatus
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Manual status check failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get User Transactions dengan snap_token
+     */
     public function getUserTransactions()
     {
         try {
@@ -543,7 +585,7 @@ public function testCallback(Request $request)
                             'total' => $transaction->total,
                             'status' => $transaction->status,
                             'payment_method' => $transaction->payment_method,
-                            'snap_token' => $transaction->snap_token, // ✅ SERTAKAN SNAP_TOKEN
+                            'snap_token' => $transaction->snap_token,
                             'expiry_time' => $transaction->expiry_time?->toISOString(),
                             'created_at' => $transaction->created_at->toISOString(),
                             'items' => $transaction->items->map(function($item) {
@@ -566,6 +608,9 @@ public function testCallback(Request $request)
         }
     }
 
+    /**
+     * Update product stock
+     */
     private function updateProductStock(UserTransaction $transaction)
     {
         foreach ($transaction->items as $item) {
@@ -573,12 +618,14 @@ public function testCallback(Request $request)
             if ($product) {
                 $product->stock -= $item->quantity;
                 $product->save();
-                Log::info('Stock updated for product: ' . $product->id . ' new stock: ' . $product->stock);
+                Log::info('📦 Stock updated for product: ' . $product->id . ' new stock: ' . $product->stock);
             }
         }
     }
 
-    // Checkout page (jika diperlukan)
+    /**
+     * Checkout page
+     */
     public function checkout()
     {
         try {
@@ -602,5 +649,20 @@ public function testCallback(Request $request)
                 'message' => 'Failed to load checkout data'
             ], 500);
         }
+    }
+
+    /**
+     * Test callback endpoint
+     */
+    public function testCallback(Request $request)
+    {
+        Log::info('🧪 TEST CALLBACK RECEIVED', $request->all());
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Callback URL is working!',
+            'data' => $request->all(),
+            'timestamp' => now()->toISOString()
+        ]);
     }
 }
