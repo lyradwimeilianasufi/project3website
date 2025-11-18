@@ -28,8 +28,9 @@ Route::post('/kontak/store', [ContactController::class, 'store'])->name('kontak.
 // Route::get('/kontak', function () { return view('kontak'); })->name('kontak');
 
 // Route login admin
-Route::get('/admin', [AuthController::class, 'showAdminLoginForm'])->name('admin.login');
-Route::post('/admin', [AuthController::class, 'adminLogin'])->name('admin.login.submit');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Dashboard admin
 Route::get('/admin/index', [AdminController::class, 'Dashboard'])->name('admin.dashboard');
@@ -83,9 +84,9 @@ Route::get('/admin/transaksi/{transactionId}', [TransaksiController::class, 'sho
 Route::post('/admin/logout', [AuthController::class, 'adminLogout'])->name('admin.logout');
 
 
-// Route login user
-Route::get('/login', [AuthController::class, 'showUserLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'userLogin'])->name('login.submit');
+// // Route login user
+// Route::get('/login', [AuthController::class, 'showUserLoginForm'])->name('login');
+// Route::post('/login', [AuthController::class, 'userLogin'])->name('login.submit');
 
 // Dashboard user
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('user.dashboard')->middleware('auth:web');
