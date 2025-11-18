@@ -7,63 +7,51 @@ use RealRashid\SweetAlert\Facades\Alert;
 use App\Models\Cart;
 use App\Models\UserTransaction;
 use App\Models\TransactionItem;
-use Midtrans\Config;
 use Midtrans\Snap;
 use Illuminate\Support\Facades\Log;
 
-class paymentController extends Controller
+class PaymentController extends Controller
 {
-    // Halaman Checkout
+    // 🛒 Halaman checkout
     public function checkout()
     {
-        // Ambil keranjang dan total
         $cart = Cart::where('user_id', auth()->id())->get();
         $total = $cart->sum('subtotal');
 
-        // Pastikan keranjang tidak kosong sebelum melanjutkan
         if ($cart->isEmpty()) {
-            Alert::error('Your cart is empty', 'Please add products to your cart before proceeding to checkout.');
+            Alert::error('Your cart is empty', 'Please add products to your cart first.');
             return redirect()->route('cart.index');
         }
 
-        // Kirim data ke halaman checkout
         return view('page.checkout.index', compact('cart', 'total'));
     }
 
-    // Proses Pembayaran
+    // 💳 Proses pembayaran
     public function processPayment(Request $request)
     {
-        // Ambil keranjang dan total
         $cart = Cart::where('user_id', auth()->id())->get();
         $total = $cart->sum('subtotal');
-        $fee = 2000;  // Fee admin
-
-        // Hitung total akhir dengan fee admin
+        $fee = 2000;
         $finalTotal = $total + $fee;
 
-        // Konfigurasi Midtrans
-        Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
-        Config::$isProduction = false; // Set true jika di production
-
-        // Membuat transaksi di Midtrans
-        $transaction_details = array(
+        // Detail transaksi
+        $transaction_details = [
             'order_id' => 'ORDER-' . uniqid(),
-            'gross_amount' => $finalTotal, // Total amount yang dibayar
-        );
+            'gross_amount' => $finalTotal,
+        ];
 
-        // Detil barang
+        // Item detail
         $items = [];
         foreach ($cart as $item) {
-            $items[] = array(
+            $items[] = [
                 'id' => $item->product_id,
                 'price' => $item->price,
                 'quantity' => $item->quantity,
                 'name' => $item->product->name,
-            );
+            ];
         }
 
-        // Menambahkan fee admin
+        // Fee admin
         $items[] = [
             'id' => 'fee',
             'name' => 'Admin Fee',
@@ -71,37 +59,27 @@ class paymentController extends Controller
             'quantity' => 1,
         ];
 
-        // Detail pembayaran
-        $payment_type = 'credit_card'; // Kamu bisa menggunakan berbagai jenis pembayaran lainnya, ganti ini dengan pilihan yang sesuai
-        $credit_card = array(
-            'secure' => true,
-        );
-
-        // Membuat Snap Transaction
-        $params = array(
+        // Customer detail
+        $params = [
             'transaction_details' => $transaction_details,
             'item_details' => $items,
-            'payment_type' => $payment_type,
-            'credit_card' => $credit_card,
-            'customer_details' => array(
-                'first_name' => auth()->user()->full_name,
+            'customer_details' => [
+                'first_name' => auth()->user()->name,
                 'email' => auth()->user()->email,
-                'phone' => auth()->user()->phone_number,
-            ),
-        );
+                'phone' => auth()->user()->phone_number ?? '08123456789',
+            ],
+        ];
 
-        // Menyimpan transaksi ke database
+        // Simpan ke database
         $transaction = UserTransaction::create([
             'user_id' => auth()->id(),
-            'transaction_id' => $transaction_details['order_id'], // Menggunakan order_id dari transaksi Midtrans
+            'transaction_id' => $transaction_details['order_id'],
             'total' => $finalTotal,
             'status' => 'pending',
-            'payment_url' => null,  // Bisa diupdate nanti jika ada URL pembayaran
-            'payment_method' => $payment_type,  // Menyimpan payment method
-            'expire_time' => now()->addMinutes(15),  // Misalnya 15 menit setelah transaksi dibuat, disesuaikan dengan waktu kadaluarsa Midtrans
+            'payment_method' => 'midtrans',
+            'expire_time' => now()->addMinutes(15),
         ]);
 
-        // Pindahkan data produk dari keranjang ke transaction_items
         foreach ($cart as $item) {
             TransactionItem::create([
                 'transaction_id' => $transaction->id,
@@ -112,54 +90,49 @@ class paymentController extends Controller
             ]);
         }
 
-        // Hapus keranjang setelah transaksi selesai
-        Cart::where('user_id', auth()->id())->delete();  // Mengosongkan keranjang pengguna
+        Cart::where('user_id', auth()->id())->delete();
 
-        // Membuat Snap Token
+        // Dapatkan Snap Token
         $snapToken = Snap::getSnapToken($params);
 
-        // Mengirimkan Snap Token sebagai response JSON
         return response()->json(['snap_token' => $snapToken]);
     }
 
-    // Callback
+    // 🔁 Callback Midtrans
     public function callback(Request $request)
     {
+        Log::info('Midtrans callback received', $request->all());
+
         $serverKey = config('midtrans.server_key');
         $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 
-        if ($hashed == $request->signature_key) {
+        if ($hashed === $request->signature_key) {
             $transaction = UserTransaction::where('transaction_id', $request->order_id)->first();
 
-            // Periksa apakah transaksi ditemukan
             if ($transaction) {
-                // Simpan payment_method dari Midtrans
-                $transaction->payment_method = $request->payment_type;  // Simpan payment_type ke database
-                $transaction->expiry_time = $request->expiry_time;  // Simpan expiry_time ke database
-                $transaction->save();
+                $status = $request->transaction_status;
 
-                // Lakukan pengecekan status transaksi
-                if ($request->transaction_status == 'capture' || $request->transaction_status == 'settlement') {
+                if ($status === 'capture' || $status === 'settlement') {
                     $transaction->update(['status' => 'success']);
-                    // Mengurangi stok produk jika transaksi berhasil
                     $this->updateProductStock($transaction);
-                } elseif ($request->transaction_status == 'cancel') {
+                } elseif ($status === 'cancel' || $status === 'deny' || $status === 'expire') {
                     $transaction->update(['status' => 'failed']);
-                    // Tidak ada pengurangan stok jika transaksi dibatalkan
-                } elseif ($request->transaction_status == 'pending') {
+                } elseif ($status === 'pending') {
                     $transaction->update(['status' => 'pending']);
                 }
+
+                return response()->json(['success' => true]);
             } else {
-                // Tangani jika transaksi tidak ditemukan
-                Log::error("Transaksi dengan order_id {$request->order_id} tidak ditemukan.");
+                Log::error("Transaction not found for order_id: {$request->order_id}");
                 return response()->json(['error' => 'Transaction not found'], 404);
             }
         }
+
+        return response()->json(['error' => 'Invalid signature'], 403);
     }
 
     private function updateProductStock($transaction)
     {
-        // Pindahkan data produk dari transaction_items dan kurangi stok produk
         foreach ($transaction->items as $item) {
             $product = $item->product;
             $product->stock -= $item->quantity;

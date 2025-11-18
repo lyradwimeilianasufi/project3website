@@ -272,7 +272,7 @@
                         @foreach($recentUsers as $user)
                         <div class="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
                             <img src="https://ui-avatars.com/api/?name={{ $user->full_name }}&background=0D47A1&color=fff" 
-                                 alt="{{ $user->full_name }}" class="w-10 h-10 rounded-full">
+                                alt="{{ $user->full_name }}" class="w-10 h-10 rounded-full">
                             <div class="ml-3 flex-1">
                                 <p class="font-medium">{{ $user->full_name }}</p>
                                 <p class="text-sm text-gray-500">
