@@ -7,6 +7,7 @@ use App\Http\Controllers\StokController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\paymentController;
@@ -135,7 +136,8 @@ Route::get('/login', [AuthController::class, 'showUserLoginForm'])->name('login'
 Route::post('/login', [AuthController::class, 'userLogin'])->name('login.submit');
 
 // Dashboard user
-Route::get('/dashboard', [UserController::class, 'dashboard'])->middleware('auth:web')->name('user.dashboard');
+Route::get('/dashboard', [UserController::class, 'dashboard'])->name('user.dashboard')->middleware('auth:web');
+Route::get('/assistant', [ChatbotController::class, 'index'])->name('assistant')->middleware('auth:web');
 
 /*
 |--------------------------------------------------------------------------

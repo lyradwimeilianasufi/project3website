@@ -126,12 +126,11 @@
                             <span class="text-blue-600">Rp {{ number_format($total + 2000, 0, ',', '.') }}</span>
                         </div>
                     </div>
-
-                    <!-- Payment Button -->
                     <button id="payButton" class="w-full bg-blue-600 text-white py-3 rounded-lg mt-6 hover:bg-blue-700">
                         Bayar Sekarang
                         <i class="fas fa-arrow-right ml-2"></i>
                     </button>
+
 
                     <!-- Back to Cart -->
                     <a href="{{ route('cart.index') }}" class="block text-center text-blue-600 mt-4 hover:text-blue-800">
@@ -143,51 +142,35 @@
         </div>
     </div>
 
-    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+    <script type="text/javascript"
+    src="https://app.sandbox.midtrans.com/snap/snap.js"
+    data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}">
+</script>
 
-        <script>
-            document.getElementById('payButton').addEventListener('click', function() {
-                // Mengambil Snap Token dari server
-                fetch("{{ route('payment') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    snap.pay(data.snap_token, {
-                        onSuccess: function(result) {
-                        console.log(result);
-                        
-                        // Dapatkan order_id atau transaction_id dari result (sesuaikan dengan response dari Midtrans)
-                        var orderId = result.order_id; // Pastikan nama field ini sesuai dengan data yang dikembalikan oleh Midtrans
-                        
-                        // Buat URL invoice dengan memasukkan order_id atau transaction_id ke dalam URL
-                        var invoiceUrl = '/dashboard/invoice-' + orderId;
-                        
-                        // Arahkan pengguna ke halaman invoice
-                        window.location.href = invoiceUrl;
-                    },
-                        onPending: function(result) {
-                            console.log(result);
+<script>
+document.getElementById('payButton').addEventListener('click', function (e) {
+    e.preventDefault();
 
-                            // Dapatkan order_id atau transaction_id dari result (sesuaikan dengan response dari Midtrans)
-                            var orderId = result.order_id; // Pastikan nama field ini sesuai dengan data yang dikembalikan oleh Midtrans
-                            
-                            // Buat URL invoice dengan memasukkan order_id atau transaction_id ke dalam URL
-                            var invoiceUrl = '/dashboard/invoice-' + orderId;
-                            
-                            // Arahkan pengguna ke halaman invoice
-                            window.location.href = invoiceUrl;
-                        },
-                        onError: function(result) {
-                            console.log(result);
-                            // Redirect atau tampilkan halaman error
-                        }
-                    });
-                });
-            });
-        </script>
-@endsection
+    fetch("{{ route('payment') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        snap.pay(data.snap_token, {
+            onSuccess: function(result) {
+                window.location.href = "/dashboard/invoice/" + result.order_id;
+            },
+            onPending: function(result) {
+                window.location.href = "/dashboard/invoice/" + result.order_id;
+            },
+            onError: function(result) {
+                console.log("Payment Error:", result);
+            }
+        });
+    });
+});
+</script>

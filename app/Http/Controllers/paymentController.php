@@ -7,136 +7,125 @@ use RealRashid\SweetAlert\Facades\Alert;
 use App\Models\Cart;
 use App\Models\UserTransaction;
 use App\Models\TransactionItem;
+use Midtrans\Config;
 use Midtrans\Snap;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
-    // 🛒 Halaman checkout
     public function checkout()
     {
-        $cart = Cart::where('user_id', auth()->id())->get();
+        $userId = Auth::id();
+
+        if (!$userId) return redirect()->route('login');
+
+        $cart = Cart::where('user_id', $userId)->get();
         $total = $cart->sum('subtotal');
 
         if ($cart->isEmpty()) {
-            Alert::error('Your cart is empty', 'Please add products to your cart first.');
+            Alert::error('Keranjang Kosong', 'Silakan masukkan barang dulu.');
             return redirect()->route('cart.index');
         }
+
+        $cart->load('product');
 
         return view('page.checkout.index', compact('cart', 'total'));
     }
 
-    // 💳 Proses pembayaran
     public function processPayment(Request $request)
     {
-        $cart = Cart::where('user_id', auth()->id())->get();
-        $total = $cart->sum('subtotal');
-        $fee = 2000;
-        $finalTotal = $total + $fee;
-
-        // Detail transaksi
-        $transaction_details = [
-            'order_id' => 'ORDER-' . uniqid(),
-            'gross_amount' => $finalTotal,
-        ];
-
-        // Item detail
-        $items = [];
-        foreach ($cart as $item) {
-            $items[] = [
-                'id' => $item->product_id,
-                'price' => $item->price,
-                'quantity' => $item->quantity,
-                'name' => $item->product->name,
-            ];
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'msg' => 'Unauthorized'], 401);
         }
 
-        // Fee admin
-        $items[] = [
-            'id' => 'fee',
-            'name' => 'Admin Fee',
-            'price' => $fee,
-            'quantity' => 1,
-        ];
+        $user = Auth::user();
 
-        // Customer detail
-        $params = [
-            'transaction_details' => $transaction_details,
-            'item_details' => $items,
-            'customer_details' => [
-                'first_name' => auth()->user()->name,
-                'email' => auth()->user()->email,
-                'phone' => auth()->user()->phone_number ?? '08123456789',
-            ],
-        ];
+        try {
+            // CART
+            $cart = Cart::where('user_id', $user->id)->get();
+            $total = $cart->sum('subtotal');
+            $fee = 2000;
+            $finalTotal = $total + $fee;
 
-        // Simpan ke database
-        $transaction = UserTransaction::create([
-            'user_id' => auth()->id(),
-            'transaction_id' => $transaction_details['order_id'],
-            'total' => $finalTotal,
-            'status' => 'pending',
-            'payment_method' => 'midtrans',
-            'expire_time' => now()->addMinutes(15),
-        ]);
-
-        foreach ($cart as $item) {
-            TransactionItem::create([
-                'transaction_id' => $transaction->id,
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'price' => $item->price,
-                'subtotal' => $item->subtotal,
-            ]);
-        }
-
-        Cart::where('user_id', auth()->id())->delete();
-
-        // Dapatkan Snap Token
-        $snapToken = Snap::getSnapToken($params);
-
-        return response()->json(['snap_token' => $snapToken]);
-    }
-
-    // 🔁 Callback Midtrans
-    public function callback(Request $request)
-    {
-        Log::info('Midtrans callback received', $request->all());
-
-        $serverKey = config('midtrans.server_key');
-        $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
-
-        if ($hashed === $request->signature_key) {
-            $transaction = UserTransaction::where('transaction_id', $request->order_id)->first();
-
-            if ($transaction) {
-                $status = $request->transaction_status;
-
-                if ($status === 'capture' || $status === 'settlement') {
-                    $transaction->update(['status' => 'success']);
-                    $this->updateProductStock($transaction);
-                } elseif ($status === 'cancel' || $status === 'deny' || $status === 'expire') {
-                    $transaction->update(['status' => 'failed']);
-                } elseif ($status === 'pending') {
-                    $transaction->update(['status' => 'pending']);
-                }
-
-                return response()->json(['success' => true]);
-            } else {
-                Log::error("Transaction not found for order_id: {$request->order_id}");
-                return response()->json(['error' => 'Transaction not found'], 404);
+            if ($cart->isEmpty()) {
+                return response()->json(['success' => false, 'msg' => 'Cart Kosong'], 400);
             }
-        }
 
-        return response()->json(['error' => 'Invalid signature'], 403);
-    }
+            // MIDTRANS CONFIG
+            Config::$serverKey = env('MIDTRANS_SERVER_KEY');
+            Config::$clientKey = env('MIDTRANS_CLIENT_KEY');
+            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+            
+            // ITEM DETAIL
+            $items = [];
+            foreach ($cart as $item) {
+                $items[] = [
+                    'id' => $item->product_id,
+                    'price' => (int)$item->price,
+                    'quantity' => (int)$item->quantity,
+                    'name' => $item->product->name,
+                ];
+            }
 
-    private function updateProductStock($transaction)
-    {
-        foreach ($transaction->items as $item) {
-            $product = $item->product;
-            $product->stock -= $item->quantity;
-            $product->save();
+            // ADMIN FEE
+            $items[] = [
+                'id' => 'fee',
+                'name' => 'Admin Fee',
+                'price' => (int)$fee,
+                'quantity' => 1,
+            ];
+
+            // ORDER
+            $orderId = 'ORDER-' . uniqid();
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $orderId,
+                    'gross_amount' => (int)$finalTotal
+                ],
+                'customer_details' => [
+                    'first_name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone_number ?? '08123456789',
+                ],
+                'item_details' => $items
+            ];
+
+            // SIMPAN TRANSAKSI
+            $transaction = UserTransaction::create([
+                'user_id' => $user->id,
+                'transaction_id' => $orderId,
+                'total' => $finalTotal,
+                'status' => 'pending',
+            ]);
+
+            foreach ($cart as $item) {
+                TransactionItem::create([
+                    'transaction_id' => $transaction->id,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'subtotal' => $item->subtotal,
+                ]);
+            }
+
+            // SNAP TOKEN
+            $snapToken = Snap::getSnapToken($params);
+
+            // CLEAR CART
+            Cart::where('user_id', $user->id)->delete();
+
+            return response()->json([
+                'success' => true,
+                'snap_token' => $snapToken,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Payment ERROR: " . $e->getMessage());
+            return response()->json(['success' => false, 'msg' => 'Server Error'], 500);
         }
     }
 }
