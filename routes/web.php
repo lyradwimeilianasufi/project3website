@@ -34,14 +34,9 @@ Route::get('/produk', [ProductController::class, 'showProducts'])->name('produk'
 // Kontak
 Route::get('/kontak', [ContactController::class, 'index'])->name('kontak');
 Route::post('/kontak/store', [ContactController::class, 'store'])->name('kontak.store');
+// Route::get('/kontak', function () { return view('kontak'); })->name('kontak');
 
-/*
-|--------------------------------------------------------------------------
-| Admin Auth & Dashboard
-|--------------------------------------------------------------------------
-*/
-
-// Login admin
+// Route login admin
 Route::get('/admin', [AuthController::class, 'showAdminLoginForm'])->name('admin.login');
 Route::post('/admin', [AuthController::class, 'adminLogin'])->name('admin.login.submit');
 
@@ -132,6 +127,7 @@ Route::post('/admin/logout', [AuthController::class, 'adminLogout'])->name('admi
 |--------------------------------------------------------------------------
 */
 
+// Route login user
 Route::get('/login', [AuthController::class, 'showUserLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'userLogin'])->name('login.submit');
 

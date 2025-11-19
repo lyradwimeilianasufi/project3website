@@ -113,23 +113,25 @@ Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
     Route::get('/snap-token/{snapToken}', [PaymentController::class, 'getTransactionBySnapToken']);
     Route::post('/{transactionId}/regenerate-snap-token', [PaymentController::class, 'regenerateSnapToken']);
 });
-// MIDTRANS ROUTES
+// routes/api.php
 Route::prefix('midtrans')->group(function () {
     Route::post('/callback', [MidtransController::class, 'handleNotification']);
-        Route::get('/redirect', [MidtransController::class, 'handleRedirect']);
-    
+    Route::get('/redirect', [MidtransController::class, 'handleRedirect']);
     Route::get('/status/{orderId}', [MidtransController::class, 'checkStatus']);
-    
     Route::get('/test', [MidtransController::class, 'test']);
     Route::post('/simulate-callback', [MidtransController::class, 'simulateCallback']);
 });
-Route::prefix('payments')->group(function () {
-    Route::get('/{transactionId}/check-status', [PaymentController::class, 'checkTransactionStatus']);
-    Route::post('/payments/test-callback', [PaymentController::class, 'testCallback']);
-    Route::post('/callback/mobile', [PaymentController::class, 'mobileCallback']);
-    Route::post('/callback/finish', [PaymentController::class, 'mobileCallback']);
-    Route::post('/callback/error', [PaymentController::class, 'mobileCallback']);
-    Route::post('/callback/pending', [PaymentController::class, 'mobileCallback']);
+
+Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
+    Route::post('/process', [PaymentController::class, 'processPaymentMobile']);
+    Route::get('/status/{transactionId}', [PaymentController::class, 'getPaymentStatus']);
+    Route::get('/transaction/{snapToken}', [PaymentController::class, 'getTransactionBySnapToken']);
+    Route::post('/confirm/{transactionId}', [PaymentController::class, 'confirmPayment']);
+    Route::get('/transactions', [PaymentController::class, 'getUserTransactions']);
+    Route::get('/checkout', [PaymentController::class, 'checkout']);
+    Route::post('/regenerate-token/{transactionId}', [PaymentController::class, 'regenerateSnapToken']);
+    Route::get('/check-status/{transactionId}', [PaymentController::class, 'checkTransactionStatus']);
+    Route::post('/mobile-callback', [PaymentController::class, 'mobileCallback']);
 });
 // Product routes
 Route::get('/products', [ProductController::class, 'index']);
