@@ -126,10 +126,13 @@
                             <span class="text-blue-600">Rp {{ number_format($total + 2000, 0, ',', '.') }}</span>
                         </div>
                     </div>
-                    <button id="payButton" class="w-full bg-blue-600 text-white py-3 rounded-lg mt-6 hover:bg-blue-700">
+                    <form action="{{ route('payment') }}" method="POST">
+                        @csrf
+                    <button type="button" id="payButton" class="w-full bg-blue-600 text-white py-3 rounded-lg mt-6 hover:bg-blue-700">
                         Bayar Sekarang
                         <i class="fas fa-arrow-right ml-2"></i>
                     </button>
+                    </form>
 
 
                     <!-- Back to Cart -->
@@ -156,10 +159,18 @@ document.getElementById('payButton').addEventListener('click', function (e) {
         headers: {
             "Content-Type": "application/json",
             "X-CSRF-TOKEN": "{{ csrf_token() }}"
-        }
+        },
+        body: JSON.stringify({}) // WAJIB ada body kosong untuk keamanan
     })
-    .then(res => res.json())
+    .then(response => response.json())
     .then(data => {
+
+        if (!data.success) {
+            alert("Gagal memproses pembayaran: " + data.msg);
+            return;
+        }
+
+        // PANGGIL POPUP MIDTRANS
         snap.pay(data.snap_token, {
             onSuccess: function(result) {
                 window.location.href = "/dashboard/invoice/" + result.order_id;
@@ -168,9 +179,18 @@ document.getElementById('payButton').addEventListener('click', function (e) {
                 window.location.href = "/dashboard/invoice/" + result.order_id;
             },
             onError: function(result) {
-                console.log("Payment Error:", result);
+                console.error("Payment Error:", result);
+                alert("Pembayaran gagal. Silakan coba lagi.");
+            },
+            onClose: function() {
+                console.log("Popup closed by user");
             }
         });
+
+    })
+    .catch(error => {
+        console.error("Fetch Error:", error);
+        alert("Terjadi kesalahan pada server.");
     });
 });
 </script>

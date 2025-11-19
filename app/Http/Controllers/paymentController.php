@@ -123,9 +123,16 @@ class PaymentController extends Controller
                 'snap_token' => $snapToken,
             ]);
 
-        } catch (\Exception $e) {
-            Log::error("Payment ERROR: " . $e->getMessage());
-            return response()->json(['success' => false, 'msg' => 'Server Error'], 500);
-        }
+            
+            } catch (\Exception $e) {
+                return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+                ], 500);
+            }
+
+
     }
 }

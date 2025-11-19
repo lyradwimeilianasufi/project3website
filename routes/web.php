@@ -128,8 +128,8 @@ Route::post('/admin/logout', [AuthController::class, 'adminLogout'])->name('admi
 */
 
 // Route login user
-Route::get('/login', [AuthController::class, 'showUserLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'userLogin'])->name('login.submit');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 
 // Dashboard user
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('user.dashboard')->middleware('auth:web');
