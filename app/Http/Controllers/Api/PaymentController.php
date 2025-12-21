@@ -665,4 +665,52 @@ class PaymentController extends Controller
             'timestamp' => now()->toISOString()
         ]);
     }
+
+    public function updatePaymentStatus(Request $request, $transactionId)
+{
+    try {
+        $transaction = UserTransaction::where('transaction_id', $transactionId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $validStatuses = ['success', 'failed', 'pending', 'cancelled', 'expired'];
+        
+        if (!in_array($request->status, $validStatuses)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid status'
+            ], 400);
+        }
+
+        // Update status
+        $transaction->status = $request->status;
+        $transaction->save();
+
+        // Jika status success, kurangi stok
+        if ($request->status === 'success') {
+            $this->updateProductStock($transaction);
+        }
+
+        Log::info('📝 Payment status updated manually:', [
+            'transaction_id' => $transactionId,
+            'status' => $request->status,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment status updated',
+            'data' => [
+                'transaction' => $this->formatTransactionResponse($transaction)
+            ]
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error updating payment status: ' . $e->getMessage());
+        return response()->json([
+            'success' =>false,
+            'message' => 'Failed to update payment status'
+        ], 500);
+    }
+}
+
 }
