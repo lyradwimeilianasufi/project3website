@@ -112,6 +112,10 @@ Route::prefix('payments')->middleware('auth:sanctum')->group(function () {
     Route::get('/transactions', [PaymentController::class, 'getUserTransactions']);
     Route::get('/snap-token/{snapToken}', [PaymentController::class, 'getTransactionBySnapToken']);
     Route::post('/{transactionId}/regenerate-snap-token', [PaymentController::class, 'regenerateSnapToken']);
+        Route::post('/{transactionId}/update-status', [PaymentController::class, 'updatePaymentStatus']);
+    
+    // Endpoint khusus untuk Flutter callback
+    Route::post('/mobile/callback', [PaymentController::class, 'handleMobileCallback']);
 });
 // routes/api.php
 Route::prefix('midtrans')->group(function () {

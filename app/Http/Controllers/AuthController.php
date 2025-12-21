@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -17,6 +18,7 @@ class AuthController extends Controller
     // Proses login universal
     public function login(Request $request)
     {
+        Log::debug(json_decode($request));
         // return "lmao";
         // Validasi input
         $request->validate([

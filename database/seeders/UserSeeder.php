@@ -26,7 +26,7 @@ class UserSeeder extends Seeder
         $users[] = array_merge([
             'full_name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('password123'),
             'phone_number' => '081234567890',
             'street_address' => 'Jl. Admin No. 1',
             'city' => 'Jakarta',
