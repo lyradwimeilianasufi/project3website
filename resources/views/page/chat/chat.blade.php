@@ -523,7 +523,7 @@ $baseURL = asset('');
         const messagesContainer = document.getElementById('messagesContainer');
 
         // API Configuration
-        const API_KEY = 'AIzaSyBdgghKvypUoJQefd_q7leY96NW_W4AMp8';
+        const API_KEY = 'AIzaSyBRdp_k4a7yoAT2TwXW66MGOGBWjhNa1_M';
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${API_KEY}`;
 
         // System prompt for Toko24 assistant
@@ -535,14 +535,7 @@ Tugas utama Anda:
 3. Menjelaskan fitur dan spesifikasi produk
 4. Membandingkan produk
 5. Membantu dengan proses pemesanan
-
-Gaya respons:
-- Ramah, informatif, dan membantu
-- Fokus pada produk dan kebutuhan pengguna
-- Gunakan bahasa yang mudah dipahami
-- Tawarkan bantuan lebih lanjut
-
-JANGAN membuat respons terlalu panjang. Berikan informasi yang relevan dan langsung ke intinya.`;
+`;
 
         const products = @json($productData);
 
