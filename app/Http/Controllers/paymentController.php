@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use RealRashid\SweetAlert\Facades\Alert;
-use App\Models\Cart;
-use App\Models\UserTransaction;
-use App\Models\TransactionItem;
-use Midtrans\Config;
 use Midtrans\Snap;
+use App\Models\Cart;
+use Midtrans\Config;
+use Illuminate\Http\Request;
+use App\Models\TransactionItem;
+use App\Models\UserTransaction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class PaymentController extends Controller
 {
@@ -383,4 +384,94 @@ class PaymentController extends Controller
             }
         }
     }
+     public function callback(Request $request)
+    {
+        Log::info('📥 Midtrans Callback Received:', $request->all());
+
+        $data = $request->all();
+
+        // Pastikan order_id ada
+        if (!isset($data['order_id']) || !isset($data['transaction_status'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid callback data'
+            ], 400);
+        }
+
+        $orderId = $data['order_id'];
+        $status = $data['transaction_status']; // capture, settlement, pending, deny, cancel, expire
+        $paymentType = $data['payment_type'] ?? null;
+
+        DB::beginTransaction();
+
+        try {
+            $transaction = UserTransaction::where('transaction_id', $orderId)->first();
+
+            if (!$transaction) {
+                Log::error("❌ Transaction not found: {$orderId}");
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found'
+                ], 404);
+            }
+
+            $oldStatus = $transaction->status;
+
+            // Update status berdasarkan callback Midtrans
+            switch ($status) {
+                case 'capture':
+                    $transaction->status = $data['fraud_status'] === 'challenge' ? 'challenge' : 'success';
+                    break;
+
+                case 'settlement':
+                    $transaction->status = 'success';
+                    break;
+
+                case 'pending':
+                    $transaction->status = 'pending';
+                    break;
+
+                case 'deny':
+                    $transaction->status = 'failed';
+                    break;
+
+                case 'expire':
+                    $transaction->status = 'expired';
+                    break;
+
+                case 'cancel':
+                    $transaction->status = 'cancelled';
+                    break;
+
+                default:
+                    $transaction->status = 'pending';
+                    break;
+            }
+
+            $transaction->payment_method = $paymentType ?? $transaction->payment_method;
+            $transaction->save();
+
+            DB::commit();
+
+            Log::info("✅ Transaction updated: {$orderId} ({$oldStatus} → {$transaction->status})");
+
+            // Jika ingin frontend langsung redirect ke invoice, cukup kembalikan JSON sukses
+            return response()->json([
+                'success' => true,
+                'order_id' => $orderId,
+                'status' => $transaction->status,
+                'redirect_url' => route('invoice.show', ['order_id' => $orderId])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('💥 Midtrans callback error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process callback',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

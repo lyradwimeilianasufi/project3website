@@ -173,10 +173,12 @@ document.getElementById('payButton').addEventListener('click', function (e) {
         // PANGGIL POPUP MIDTRANS
         snap.pay(data.snap_token, {
             onSuccess: function(result) {
-                window.location.href = "/dashboard/invoice/" + result.order_id;
+                // Update status di database lewat callback controller
+                updateTransactionStatus(result);
             },
             onPending: function(result) {
-                window.location.href = "/dashboard/invoice/" + result.order_id;
+                // Update status di database lewat callback controller
+                updateTransactionStatus(result);
             },
             onError: function(result) {
                 console.error("Payment Error:", result);
@@ -193,4 +195,32 @@ document.getElementById('payButton').addEventListener('click', function (e) {
         alert("Terjadi kesalahan pada server.");
     });
 });
+
+/**
+ * Fungsi untuk request ke backend callback dan redirect ke invoice
+ */
+function updateTransactionStatus(result) {
+    fetch("{{ route('payment.callback') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+        },
+        body: JSON.stringify(result)
+    })
+    .then(res => res.json())
+    .then(cb => {
+        if(cb.success){
+            // Redirect ke invoice
+            window.location.href = cb.redirect_url;
+        } else {
+            alert("Terjadi kesalahan saat update transaksi: " + cb.message);
+        }
+    })
+    .catch(error => {
+        console.error("Callback Error:", error);
+        alert("Terjadi kesalahan saat update transaksi.");
+    });
+}
 </script>
+

@@ -524,7 +524,7 @@ $baseURL = asset('');
 
         // API Configuration
         const API_KEY = 'AIzaSyBdgghKvypUoJQefd_q7leY96NW_W4AMp8';
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${API_KEY}`;
 
         // System prompt for Toko24 assistant
         const SYSTEM_PROMPT = `Anda adalah asisten AI untuk Toko24, toko online yang menjual berbagai produk. Anda HARUS merespons dalam bahasa Indonesia.
